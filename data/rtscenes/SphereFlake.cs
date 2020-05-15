@@ -1,7 +1,11 @@
 ﻿//////////////////////////////////////////////////
-// Preprocessing stage support.
+// Rendering params.
 
-bool preprocessing = false;
+Debug.Assert(scene != null);
+Debug.Assert(context != null);
+
+// Tooltip (if script uses values from 'param').
+context[PropertyName.CTX_TOOLTIP] = "n=<double> (index of refraction)\rmat={mirror|glass}\rdepth=<int> (recursion depth)\rcoef=<double> (scale coefficient)";
 
 // Params dictionary.
 Dictionary<string, string> p = Util.ParseKeyValueList(param);
@@ -35,20 +39,6 @@ if (p.TryGetValue("mat", out mat))
       break;
   }
 
-if (context != null)
-{
-  // context["ToolTip"] indicates whether the script is running for the first time (preprocessing) or for regular rendering.
-  preprocessing = !context.ContainsKey(PropertyName.CTX_TOOLTIP);
-  if (preprocessing)
-  {
-    context[PropertyName.CTX_TOOLTIP] = "n=<double> (index of refraction)\rmat={mirror|glass}\rdepth=<int> (recursion depth)\rcoef=<double> (scale coefficient)";
-    return;
-  }
-}
-
-if (scene.BackgroundColor != null)
-  return;    // scene can be shared!
-
 //////////////////////////////////////////////////
 // CSG scene.
 
@@ -79,6 +69,6 @@ root.InsertChild(sf, Matrix4d.Identity);
 
 // Infinite plane with checker.
 Plane pl = new Plane();
-pl.SetAttribute(PropertyName.COLOR, new double[] { 0.3, 0.0, 0.0 });
-pl.SetAttribute(PropertyName.TEXTURE, new CheckerTexture(0.6, 0.6, new double[] { 1.0, 1.0, 1.0 }));
+pl.SetAttribute(PropertyName.COLOR, new double[] {0.3, 0.0, 0.0});
+pl.SetAttribute(PropertyName.TEXTURE, new CheckerTexture(0.6, 0.6, new double[] {1.0, 1.0, 1.0}));
 root.InsertChild(pl, Matrix4d.RotateX(-MathHelper.PiOver2) * Matrix4d.CreateTranslation(0.0, -1.0, 0.0));

@@ -1,58 +1,65 @@
 //////////////////////////////////////////////////
+// Rendering params.
+
+Debug.Assert(scene != null);
+Debug.Assert(context != null);
+
+// Override image resolution and supersampling.
+context[PropertyName.CTX_WIDTH]         = 320;    // whatever is convenient for your debugging/testing/final rendering
+context[PropertyName.CTX_HEIGHT]        = 180;
+context[PropertyName.CTX_SUPERSAMPLING] =   4;
+
+context[PropertyName.CTX_START_ANIM]    =  0.0;
+context[PropertyName.CTX_END_ANIM]      = 20.0;
+context[PropertyName.CTX_FPS]           = 25.0;
+
+//////////////////////////////////////////////////
 // Preprocessing stage support.
 
-bool preprocessing = false;
-
-if (context != null)
+// Uncomment the block if you need preprocessing.
+/*
+if (Util.TryParseBool(context, PropertyName.CTX_PREPROCESSING))
 {
-  // Let renderer application know required parameters soon..
-  context[PropertyName.CTX_WIDTH]         = 320;    // whatever is convenient for your debugging/testing/final rendering
-  context[PropertyName.CTX_HEIGHT]        = 180;
-  context[PropertyName.CTX_SUPERSAMPLING] =   4;
+  double time = 0.0;
+  bool single = Util.TryParse(context, PropertyName.CTX_TIME, ref time);
+  // if (single) simulate only for a single frame with the given 'time'
 
-  context[PropertyName.CTX_START_ANIM]    =  0.0;
-  context[PropertyName.CTX_END_ANIM]      = 20.0;
-  context[PropertyName.CTX_FPS]           = 25.0;
+  // TODO: put your preprocessing code here!
+  //
+  // It will be run only this time.
+  // Store preprocessing results to arbitrary (non-reserved) context item,
+  //  subsequent script calls will find it there...
 
-  // context["ToolTip"] indicates whether the script is running for the first time (preprocessing) or for regular rendering.
-  preprocessing = !context.ContainsKey(PropertyName.CTX_TOOLTIP);
-  if (preprocessing)
-  {
-    context[PropertyName.CTX_TOOLTIP] = "n=<double> (index of refraction)";
-
-    // TODO: put your preprocessing code here!
-    //
-    // It will be run only this time.
-    // Store preprocessing results to arbitrary (non-reserved) context item,
-    //  subsequent script calls will find it there...
-
-    return;
-  }
-
-  // Create custom objects in consequent calls only (not in preprocessing step).
-
-  //context[PropertyName.CTX_ALGORITHM]     = new RayTracing();
-
-  int ss = 0;
-  if (Util.TryParse(context, PropertyName.CTX_SUPERSAMPLING, ref ss) &&
-      ss > 1)
-    context[PropertyName.CTX_SYNTHESIZER] = new SupersamplingImageSynthesizer
-    {
-      Supersampling = ss,
-      Jittering = 1.0
-    };
+  return;
 }
+*/
 
-if (scene.BackgroundColor != null)
-  return;    // scene can be shared!
+// Optional override of rendering algorithm and/or renderer.
+
+//context[PropertyName.CTX_ALGORITHM] = new RayTracing();
+
+int ss = 0;
+if (Util.TryParse(context, PropertyName.CTX_SUPERSAMPLING, ref ss) &&
+    ss > 1)
+  context[PropertyName.CTX_SYNTHESIZER] = new SupersamplingImageSynthesizer
+  {
+    Supersampling = ss,
+    Jittering = 1.0
+  };
+
+// Tooltip (if script uses values from 'param').
+context[PropertyName.CTX_TOOLTIP] = "n=<double> (index of refraction)";
 
 //////////////////////////////////////////////////
 // CSG scene.
 
-CSGInnerNode root = new CSGInnerNode(SetOperation.Union);
+AnimatedCSGInnerNode root = new AnimatedCSGInnerNode(SetOperation.Union);
 root.SetAttribute(PropertyName.REFLECTANCE_MODEL, new PhongModel());
 root.SetAttribute(PropertyName.MATERIAL, new PhongMaterial(new double[] {1.0, 0.8, 0.1}, 0.1, 0.6, 0.4, 128));
 scene.Intersectable = root;
+
+// Optional Animator.
+scene.Animator = null;
 
 // Background color.
 scene.BackgroundColor = new double[] {0.0, 0.01, 0.03};

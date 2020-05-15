@@ -1,9 +1,7 @@
-﻿using MathSupport;
-using OpenTK;
+﻿using OpenTK;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using Utilities;
 
 // Interfaces and objects for ray-based rendering.
 namespace Rendering
@@ -47,12 +45,31 @@ namespace Rendering
     /// </summary>
     public readonly static string MATERIAL = "material";
 
+    /// <summary>
+    /// Optional aternative ray-propagation (recursion) in the form of callback.
+    /// </summary>
+    public readonly static string RECURSION = "recursion";
+
+    /// <summary>
+    /// Attribute for object which don't cast shadows.
+    /// </summary>
+    public readonly static string NO_SHADOW = "noShadow";
+
     //----------------------------------------------------
     // Scene definition script context.
     // (in/out means "relative to a script")
 
+    // bool (in).
+    public readonly static string CTX_PREPROCESSING = "Preprocessing";
+
     // IRayScene (in, out).
     public readonly static string CTX_SCENE = "Scene";
+
+    // string (in).
+    public readonly static string CTX_SCENE_NAME = "SceneName";
+
+    // string (in).
+    public readonly static string CTX_SCRIPT_PATH = "ScriptPath";
 
     // int (in, out).
     public readonly static string CTX_WIDTH = "Width";
@@ -77,6 +94,9 @@ namespace Rendering
 
     // double (in, out).
     public readonly static string CTX_END_ANIM = "End";
+
+    // double (in).
+    public readonly static string CTX_TIME = "Time";
 
     // double (in, out).
     public readonly static string CTX_FPS = "Fps";
@@ -331,15 +351,23 @@ namespace Rendering
       {
         n.attributes = new Dictionary<string, object>();
         foreach (var kvp in attributes)
-        {
-          n.attributes.Add(
-            kvp.Key,
-            (kvp.Value is ICloneable vala) ? vala.Clone() : kvp.Value);
-#if DEBUG
-          if (kvp.Value is ICloneable)
-            Util.Log("Clone Attribute: " + kvp.Key);
-#endif
-        }
+          if (kvp.Value is IEnumerable<object> varr)
+          {
+            // Vector attribute => create new LinkedList and clone-on-demand items ito it.
+            var result = new LinkedList<object>();
+            foreach (object it in varr)
+              if (it is ITimeDependent ait)
+                result.AddLast(ait.Clone());
+              else
+                result.AddLast(it);
+
+            n.attributes.Add(kvp.Key, result);
+          }
+          else
+            // Scalar attribute.
+            n.attributes.Add(
+              kvp.Key,
+              (kvp.Value is ICloneable vala) ? vala.Clone() : kvp.Value);
       }
     }
   }
@@ -559,6 +587,12 @@ namespace Rendering
     public IIntersectable Intersectable { get; set; }
 
     /// <summary>
+    /// Optional object for animations. It will be the first to receive new
+    /// 'Time' values (before everything else in the scene).
+    /// </summary>
+    public ITimeDependent Animator { get; set; }
+
+    /// <summary>
     /// Background color object.
     /// </summary>
     public IBackground Background { get; set; }
@@ -579,119 +613,6 @@ namespace Rendering
     public ICollection<ILightSource> Sources { get; set; }
 
     public DefaultRayScene () => Background = new DefaultBackground(this);
-  }
-
-  /// <summary>
-  /// Base implementation of time-dependent Ray-scene.
-  /// </summary>
-  public class AnimatedRayScene : DefaultRayScene, ITimeDependent
-  {
-#if DEBUG
-    private static volatile int nextSerial = 0;
-    private readonly int serial = nextSerial++;
-    public int getSerial () => serial;
-#endif
-
-    /// <summary>
-    /// Starting (minimal) time in seconds.
-    /// </summary>
-    public double Start { get; set; }
-
-    /// <summary>
-    /// Ending (maximal) time in seconds.
-    /// </summary>
-    public double End { get; set; }
-
-    /// <summary>
-    /// Internal variable for the current time.
-    /// </summary>
-    protected double time;
-
-    /// <summary>
-    /// Changes the current time - internal routine.
-    /// Override it if you need time-dependent background color..
-    /// </summary>
-    protected virtual void setTime (double newTime)
-    {
-      time = Arith.Clamp(newTime, Start, End);
-
-      // Time-dependent scene?
-      if (Intersectable is ITimeDependent intersectable)
-        intersectable.Time = time;
-
-      // Time-dependent Background?
-      if (Background is ITimeDependent bckgr)
-        bckgr.Time = time;
-
-      // Time-dependent camera?
-      if (Camera is ITimeDependent camera)
-        camera.Time = time;
-
-      // Time-dependent light sources?
-      foreach (ILightSource light in Sources)
-        if (light is ITimeDependent li)
-          li.Time = time;
-    }
-
-    /// <summary>
-    /// Current time in seconds.
-    /// </summary>
-    public double Time
-    {
-      get => time;
-      set => setTime(value);
-    }
-
-    /// <summary>
-    /// Clone all the time-dependent components, share the others.
-    /// </summary>
-    /// <returns></returns>
-    public virtual object Clone ()
-    {
-#if DEBUG
-      Util.Log("Clone: AnimatedRayScene");
-#endif
-      AnimatedRayScene sc = new AnimatedRayScene ();
-
-      sc.Intersectable = Intersectable;
-      if (sc.Intersectable is ITimeDependent intersectable)
-        sc.Intersectable = (IIntersectable)intersectable.Clone();
-
-      sc.Background = Background;
-      if (sc.Background is ITimeDependent bckgr)
-        sc.Background = (IBackground)bckgr.Clone();
-
-      sc.BackgroundColor = (double[])BackgroundColor.Clone();
-
-      sc.Camera = Camera;
-      if (sc.Camera is ITimeDependent camera)
-        sc.Camera = (ICamera)camera.Clone();
-
-      ILightSource[] tmp = new ILightSource[Sources.Count];
-      Sources.CopyTo(tmp, 0);
-      for (int i = 0; i < tmp.Length; i++)
-      {
-        if (tmp[i] is ITimeDependent source)
-          tmp[i] = (ILightSource)source.Clone();
-      }
-      sc.Sources = new LinkedList<ILightSource>(tmp);
-
-      sc.Start = Start;
-      sc.End   = End;
-      sc.setTime(Time); // propagates the current time to all time-dependent components..
-
-      return sc;
-    }
-
-    /// <summary>
-    /// Creates default ray-rendering scene.
-    /// </summary>
-    public AnimatedRayScene ()
-    {
-      Start = 0.0;
-      End   = 10.0;
-      time  = 0.0;
-    }
   }
 
   [Serializable]

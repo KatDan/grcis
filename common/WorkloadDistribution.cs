@@ -39,9 +39,10 @@ namespace Rendering
     public int assignmentRoundsFinished;
     public int assignmentRoundsTotal;
 
-    public Bitmap    bitmap;
-    public IRayScene scene;
-    public IRenderer renderer;
+    public Bitmap         bitmap;
+    public IRayScene      scene;
+    public IImageFunction imageFunction;
+    public IRenderer      renderer;
 
     private readonly IEnumerable<Client> clientsCollection;
 
@@ -54,17 +55,26 @@ namespace Rendering
     /// </summary>
     /// <param name="bitmap">Main bitmap - used also in PictureBox in Form1</param>
     /// <param name="scene">Scene to render</param>
+    /// <param name="imageFunction">Current IImageFunction (if applicable)</param>
     /// <param name="renderer">Rendered to use for RenderPixel method</param>
     /// <param name="clientsCollection">Collection of Clients to get their IP addresses - names are only for user</param>
     /// <param name="threads">Number of threads to be used for rendering</param>
     /// <param name="newPointCloud">Bool whether new point cloud should be created</param>
     /// <param name="pointCloudStorage">External storage of point cloud data</param>
-    public Master (Bitmap bitmap, IRayScene scene, IRenderer renderer, IEnumerable<Client> clientsCollection,
-                   int threads, bool newPointCloud, ref PointCloud pointCloudStorage)
+    public Master (
+      Bitmap bitmap,
+      IRayScene scene,
+      IImageFunction imageFunction,
+      IRenderer renderer,
+      IEnumerable<Client> clientsCollection,
+      int threads,
+      bool newPointCloud,
+      ref PointCloud pointCloudStorage)
     {
       finishedAssignments = 0;
 
       this.scene = scene;
+      this.imageFunction = imageFunction;
       this.renderer = renderer;
       this.bitmap = bitmap;
       this.clientsCollection = clientsCollection;
@@ -104,8 +114,12 @@ namespace Rendering
         int i1 = i;
         Thread newThread = new Thread(() =>
         {
+          // Set TLS.
           MT.threadID = i1;
+
           Consume();
+
+          // Signal finishing the work.
           handle.Set();
         });
 
@@ -131,6 +145,9 @@ namespace Rendering
           worker.SendSpecialAssignment(Assignment.AssignmentType.Ending);
         }
       }
+
+      // Reset the pool-thread.
+      pool = null;
     }
 
     /// <summary>
@@ -140,7 +157,13 @@ namespace Rendering
     /// </summary>
     protected void Consume ()
     {
+      // Set TLS.
       MT.InitThreadData();
+      MT.SetRendering(scene, imageFunction, renderer);
+
+      // Animation time (fore debugging animated scenes).
+      if (scene is ITimeDependent sc)
+        sc.Time = 0.0;
 
       while (!availableAssignments.IsEmpty ||
              finishedAssignments < totalNumberOfAssignments - threads ||

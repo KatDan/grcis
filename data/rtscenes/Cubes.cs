@@ -1,27 +1,28 @@
 //////////////////////////////////////////////////
+// Rendering params.
+
+Debug.Assert(scene != null);
+Debug.Assert(context != null);
+
+//////////////////////////////////////////////////
 // Preprocessing stage support.
-bool preprocessing = false;
 
-if (context != null)
+// Uncomment the block if you need preprocessing.
+/*
+if (Util.TryParseBool(context, PropertyName.CTX_PREPROCESSING))
 {
-  // context["ToolTip"] indicates whether the script is running for the first time (preprocessing) or for regular rendering.
-  preprocessing = !context.ContainsKey(PropertyName.CTX_TOOLTIP);
-  if (preprocessing)
-  {
-    context[PropertyName.CTX_TOOLTIP] = "n=<double> (index of refraction)\rmat={mirror|glass}}";
+  // TODO: put your preprocessing code here!
+  //
+  // It will be run only this time.
+  // Store preprocessing results to arbitrary (non-reserved) context item,
+  //  subsequent script calls will find it there...
 
-    // TODO: put scene preprocessing code here
-    // Store results in any context[] object, sunsequent calls will find it there..
-
-    return;
-  }
-
-  // Optional IImageFunction.
-  context[PropertyName.CTX_ALGORITHM] = new RayTracing();
+  return;
 }
+*/
 
-if (scene.BackgroundColor != null)
-  return;    // scene can be shared!
+// Tooltip (if script uses values from 'param').
+context[PropertyName.CTX_TOOLTIP] = "n=<double> (index of refraction)\rmat={mirror|glass}}";
 
 //////////////////////////////////////////////////
 // CSG scene.
@@ -77,7 +78,7 @@ pl.SetAttribute(PropertyName.TEXTURE, new CheckerTexture(0.5, 0.5, new double[] 
 root.InsertChild(pl, Matrix4d.RotateX(-MathHelper.PiOver2) * Matrix4d.CreateTranslation(0.0, -1.0, 0.0));
 
 // Cubes.
-Cube c;
+ISolid c;
 
 // The front row.
 c = new Cube();

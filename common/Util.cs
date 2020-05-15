@@ -12,6 +12,8 @@ using System.Text;
 
 namespace Utilities
 {
+  using ScriptContext = Dictionary<string, object>;
+
   /// <summary>
   /// Assorted utilities.
   /// </summary>
@@ -217,6 +219,63 @@ namespace Utilities
       Array.Copy(src, dst, Math.Min(src.Length, dst.Length));
       if (src.Length < dst.Length)
         Array.Clear(dst, src.Length, dst.Length - src.Length);
+    }
+
+    /// <summary>
+    /// Adds an monochromatic color to an color array.
+    /// </summary>
+    /// <param name="add">Source color</param>
+    /// <param name="dst">Destination array</param>
+    public static void ColorAdd (double add, double[] dst)
+    {
+      Debug.Assert(dst != null);
+
+      for (int i = 0; i < dst.Length; i++)
+        dst[i] += add;
+    }
+
+    /// <summary>
+    /// Adds one color array to another.
+    /// </summary>
+    /// <param name="add">Source array</param>
+    /// <param name="dst">Destination array</param>
+    public static void ColorAdd (double[] add, double[] dst)
+    {
+      Debug.Assert(add != null && dst != null);
+
+      int bands = Math.Min(add.Length, dst.Length);
+      for (int i = 0; i < bands; i++)
+        dst[i] += add[i];
+    }
+
+    /// <summary>
+    /// Adds 'coeff * add' color array to 'dst'.
+    /// </summary>
+    /// <param name="add">Source array</param>
+    /// <param name="coeff">Multiplicator</param>
+    /// <param name="dst">Destination array</param>
+    public static void ColorAdd (double[] add, double coeff, double[] dst)
+    {
+      Debug.Assert(add != null && dst != null);
+
+      int bands = Math.Min(add.Length, dst.Length);
+      for (int i = 0; i < bands; i++)
+        dst[i] += coeff * add[i];
+    }
+
+    /// <summary>
+    /// Adds 'weight * add' color array to 'dst'.
+    /// </summary>
+    /// <param name="add">Source array</param>
+    /// <param name="weight">Weight array</param>
+    /// <param name="dst">Destination array</param>
+    public static void ColorAdd (double[] add, double[] weight, double[] dst)
+    {
+      Debug.Assert(add != null && dst != null && weight != null);
+
+      int bands = Math.Min(Math.Min(add.Length, dst.Length), weight.Length);
+      for (int i = 0; i < bands; i++)
+        dst[i] += weight[i] * add[i];
     }
 
     /// <summary>
@@ -1290,10 +1349,50 @@ namespace Utilities
     }
 
     /// <summary>
+    /// Parses bool value from the string->object dictionary.
+    /// Converts other types to bool as good as possible.
+    /// </summary>
+    /// <returns>True if present and positive.</returns>
+    public static bool TryParseBool (ScriptContext rec, string key)
+    {
+      if (!rec.TryGetValue(key, out object oval))
+        return false;
+
+      if (oval is bool obool)
+        return obool;
+
+      return positive(oval.ToString());
+    }
+
+    /// <summary>
+    /// Parses string value from the string->object dictionary.
+    /// Converts other types to string as good as possible.
+    /// </summary>
+    /// <returns>True if everything went well, keeps the original value otherwise.</returns>
+    public static bool TryParse (ScriptContext rec, string key, ref string val)
+    {
+      if (!rec.TryGetValue(key, out object oval))
+        return false;
+
+      if (oval is string ostring)
+        val = ostring;
+      else
+      if (oval is float ofloat)
+        val = ofloat.ToString(CultureInfo.InvariantCulture);
+      else
+      if (oval is double odouble)
+        val = odouble.ToString(CultureInfo.InvariantCulture);
+      else
+        val = oval.ToString();
+
+      return true;
+    }
+
+    /// <summary>
     /// Parses integer value from the string->object dictionary.
     /// </summary>
     /// <returns>True if everything went well, keeps the original value otherwise.</returns>
-    public static bool TryParse (Dictionary<string, object> rec, string key, ref int val)
+    public static bool TryParse (ScriptContext rec, string key, ref int val)
     {
       if (!rec.TryGetValue(key, out object oval))
         return false;
@@ -1336,7 +1435,7 @@ namespace Utilities
     /// Parses long value from the string->object dictionary.
     /// </summary>
     /// <returns>True if everything went well, keeps the original value otherwise.</returns>
-    public static bool TryParse (Dictionary<string, object> rec, string key, ref long val)
+    public static bool TryParse (ScriptContext rec, string key, ref long val)
     {
       if (!rec.TryGetValue(key, out object oval))
         return false;
@@ -1379,7 +1478,7 @@ namespace Utilities
     /// Parses float value from the string->object dictionary.
     /// </summary>
     /// <returns>True if everything went well, keeps the original value otherwise.</returns>
-    public static bool TryParse (Dictionary<string, object> rec, string key, ref float val)
+    public static bool TryParse (ScriptContext rec, string key, ref float val)
     {
       if (!rec.TryGetValue(key, out object oval))
         return false;
@@ -1434,7 +1533,7 @@ namespace Utilities
     /// Parses double value from the string->object dictionary.
     /// </summary>
     /// <returns>True if everything went well, keeps the original value otherwise.</returns>
-    public static bool TryParse (Dictionary<string, object> rec, string key, ref double val)
+    public static bool TryParse (ScriptContext rec, string key, ref double val)
     {
       if (!rec.TryGetValue(key, out object oval))
         return false;

@@ -80,9 +80,7 @@ namespace _062animation
     /// Create a scene from the defined CS-script file-name.
     /// Returns null if failed.
     /// </summary>
-    /// <param name="preprocessing">Invoke the script in the "preprocessing" mode?</param>
     public IRayScene SceneFromScript (
-      bool preprocessing,
       out IImageFunction imf,
       out IRenderer rend,
       ref int width,
@@ -90,7 +88,8 @@ namespace _062animation
       ref int superSampling,
       ref double minTime,
       ref double maxTime,
-      ref double fps)
+      ref double fps,
+      in double? time = null)
     {
       if (string.IsNullOrEmpty(sceneFileName))
       {
@@ -100,28 +99,36 @@ namespace _062animation
         return null;
       }
 
-      if (preprocessing)
+      if (ctx == null)
+      {
         ctx = new ScriptContext();    // we need a new context object for each computing batch..
+        Scripts.SetScene(ctx, new AnimatedRayScene());
+      }
 
-      Scripts.ContextInit(
+      if (Scripts.ContextInit(
         ctx,
-        preprocessing ? new AnimatedRayScene() : null,
+        Path.GetFileName(sceneFileName),
         width,
         height,
         superSampling,
         minTime,
         maxTime,
-        fps);
+        fps))
+      {
+        // Script needs to be called.
 
-      Scripts.SceneFromObject(
-        ctx,
-        Path.GetFileName(sceneFileName),
-        sceneFileName,
-        textParam.Text,
-        (sc) => AnimatedScene.Init(sc, textParam.Text),
-        SetText);
+        if (time.HasValue)
+          ctx[PropertyName.CTX_TIME] = time.Value;
 
-      DefaultRayScene scene = Scripts.ContextMining(
+        Scripts.SceneFromObject(
+          ctx,
+          sceneFileName,
+          textParam.Text,
+          (sc) => AnimatedScene.Init(sc, textParam.Text),
+          SetText);
+      }
+
+      IRayScene scene = Scripts.ContextMining(
         ctx,
         out imf,
         out rend,
@@ -156,10 +163,13 @@ namespace _062animation
       double minTime = (double)numFrom.Value;
       double maxTime = (double)numTo.Value;
       double fps     = (double)numFps.Value;
+      double time    = (double)numTime.Value;
+
+      // Force preprocessing.
+      ctx = null;
 
       // 1. preprocessing - compute simulation, animation data, etc.
       _ = FormSupport.getScene(
-        true,
         out _, out _,
         ref ActualWidth,
         ref ActualHeight,
@@ -167,11 +177,11 @@ namespace _062animation
         ref minTime,
         ref maxTime,
         ref fps,
-        textParam.Text);
+        textParam.Text,
+        time);
 
       // 2. compute regular frame (using the pre-computed context).
       IRayScene scene = FormSupport.getScene(
-        false,
         out IImageFunction imf,
         out IRenderer rend,
         ref ActualWidth,
@@ -180,7 +190,8 @@ namespace _062animation
         ref minTime,
         ref maxTime,
         ref fps,
-        textParam.Text);
+        textParam.Text,
+        time);
 
       // Update GUI.
       if (ImageWidth > 0)   // preserving default (form-size) resolution
@@ -211,24 +222,29 @@ namespace _062animation
       rend.ProgressData  = progress;
       progress.Continue  = true;
 
+      // Set TLS.
+      MT.InitThreadData();
+      MT.SetRendering(scene, imf, rend);
+
       // Animation time has to be set.
       if (scene is ITimeDependent sc)
-        sc.Time = (double)numTime.Value;
+        sc.Time = time;
 
       // Output image.
       outputImage = new Bitmap(ActualWidth, ActualHeight, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
 
-      MT.InitThreadData();
       Stopwatch sw = new Stopwatch();
       sw.Start();
 
       rend.RenderRectangle(outputImage, 0, 0, ActualWidth, ActualHeight);
 
       sw.Stop();
-      labelElapsed.Text = string.Format("Elapsed: {0:f1}s", 1.0e-3 * sw.ElapsedMilliseconds);
+      labelElapsed.Text = string.Format(CultureInfo.InvariantCulture, "Elapsed: {0:f1}s", 1.0e-3 * sw.ElapsedMilliseconds);
 
       pictureBox1.Image = outputImage;
 
+      // Reset TLS.
+      MT.ResetRendering();
       EnableRendering(true);
 
       Cursor.Current = Cursors.Default;
@@ -487,30 +503,36 @@ namespace _062animation
     protected class WorkerThreadInit
     {
       /// <summary>
-      /// Animated scene object or null if not animated.
+      /// [Animated] scene object.
       /// </summary>
-      public ITimeDependent scene;
+      public IRayScene scene;
 
       /// <summary>
-      /// Animated image function or null if not animated.
+      /// [Animated] image function.
       /// </summary>
-      public ITimeDependent imfunc;
+      public IImageFunction imageFunction;
 
       /// <summary>
       /// Actual rendering object.
       /// </summary>
       public IRenderer rend;
 
+      // Frame resolution in pixels.
       public int width;
       public int height;
 
-      public WorkerThreadInit (IRenderer r, ITimeDependent sc, ITimeDependent imf, int wid, int hei)
+      public WorkerThreadInit (
+        IRenderer r,
+        IRayScene sc,
+        IImageFunction imf,
+        int wid,
+        int hei)
       {
-        scene = sc;
-        imfunc = imf;
-        rend = r;
-        width = wid;
-        height = hei;
+        scene         = sc;
+        imageFunction = imf;
+        rend          = r;
+        width         = wid;
+        height        = hei;
       }
     }
 
@@ -531,9 +553,11 @@ namespace _062animation
 
       WorkerThreadInit[] wti = new WorkerThreadInit[threads];
 
+      // Force preprocessing.
+      ctx = null;
+
       // 1. preprocessing - compute simulation, animation data, etc.
-      FormSupport.getScene(
-        true,
+      _ = FormSupport.getScene(
         out _, out _,
         ref ActualWidth,
         ref ActualHeight,
@@ -545,9 +569,11 @@ namespace _062animation
 
       for (t = 0; t < threads; t++)
       {
+        // Creating a new scene instance for every thread.
+        Scripts.SetScene(ctx, new AnimatedRayScene());
+
         // 2. initialize data for regular frames (using the pre-computed context).
         IRayScene sc = FormSupport.getScene(
-          false,
           out IImageFunction imf,
           out IRenderer rend,
           ref ActualWidth,
@@ -592,7 +618,7 @@ namespace _062animation
         rend.Adaptive      = 0;   // turn off adaptive bitmap synthesis completely (interactive preview not needed)
         rend.ProgressData  = progress;
 
-        wti[t] = new WorkerThreadInit(rend, sc as ITimeDependent, imf as ITimeDependent, ActualWidth, ActualHeight);
+        wti[t] = new WorkerThreadInit(rend, sc, imf, ActualWidth, ActualHeight);
       }
 
       // Update animation timing.
@@ -680,10 +706,11 @@ namespace _062animation
     protected void RenderWorker (object spec)
     {
       // Thread-specific data.
-      WorkerThreadInit init = spec as WorkerThreadInit;
-      if (init == null)
+      if (!(spec is WorkerThreadInit init))
         return;
 
+      // Set TLS.
+      MT.SetRendering(init.scene, init.imageFunction, init.rend);
       MT.InitThreadData();
 
       // Worker loop.
@@ -699,6 +726,10 @@ namespace _062animation
               time > end)
           {
             sem.Release();                  // chance for the main animation thread to give up as well..
+
+            // Reset TLS.
+            MT.ResetRendering();
+
             return;
           }
 
@@ -714,24 +745,24 @@ namespace _062animation
         r.frameNumber = myFrameNumber;
 
         // Set specific time to my scene.
-        if (init.scene != null)
+        if (init.scene is ITimeDependent ascene)
         {
 #if DEBUG
-          Debug.WriteLine($"Scene #{init.scene.getSerial()} setTime({myTime})");
+          Debug.WriteLine($"Scene #{ascene.getSerial()} setTime({myTime})");
 #endif
-          init.scene.Time = myTime;
+          ascene.Time = myTime;
         }
 
         if (init.rend is ITimeDependent arend)
         {
           arend.Start = myTime;
-          arend.End = myEndTime;
+          arend.End   = myEndTime;
         }
 
-        if (init.imfunc != null)
+        if (init.imageFunction is ITimeDependent aimf)
         {
-          init.imfunc.Start = myTime;
-          init.imfunc.End = myEndTime;
+          aimf.Start = myTime;
+          aimf.End   = myEndTime;
         }
 
         // Render the whole frame...

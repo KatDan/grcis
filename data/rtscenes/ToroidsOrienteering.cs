@@ -1,3 +1,11 @@
+//////////////////////////////////////////////////
+// Rendering params.
+
+Debug.Assert(scene != null);
+Debug.Assert(context != null);
+
+context[PropertyName.CTX_ALGORITHM] = new RayTracing();
+
 public class ObStripesTexture : CheckerTexture
 {
   public ObStripesTexture(double fu, double fv, double[] color)
@@ -23,26 +31,9 @@ public class ObStripesTexture : CheckerTexture
   }
 }
 
-bool preprocessing = false;
-
-if (context != null)
-{
-  // context["ToolTip"] indicates whether the script is running for the first time (preprocessing) or for regular rendering.
-  preprocessing = !context.ContainsKey(PropertyName.CTX_TOOLTIP);
-  if (preprocessing)
-  {
-    context[PropertyName.CTX_TOOLTIP] = "- nothing -";
-    return;
-  }
-
-  // Optional IImageFunction.
-  context[PropertyName.CTX_ALGORITHM] = new RayTracing();
-}
-
-if (scene.BackgroundColor != null)
-  return;    // scene can be shared!
-
+//////////////////////////////////////////////////
 // CSG scene.
+
 var white = new double[] {1, 1, 1};
 var root = new CSGInnerNode(SetOperation.Union);
 root.SetAttribute(PropertyName.REFLECTANCE_MODEL, new PhongModel());
