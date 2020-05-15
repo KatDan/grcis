@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
+using System.IO;
 using OpenTK;
+using Utilities;
 
 namespace Rendering
 {
@@ -23,13 +26,42 @@ namespace Rendering
         pointsPerSegment = 75;
         timeDiff = 0d;
 
-        // Interpolate
-        interpolated = CatmullRomInterpolation(new List<Vector3d>
+        try
         {
-          new Vector3d(3.0f, 0.0f, 3.0f), new Vector3d(3.0f, 2.0f, 5.0f), new Vector3d(1.0f, 5.0f, 6.0f), new Vector3d(0.0f, 3.0f, 10.0f),
-          new Vector3d(-2.0f, -3.0f, 8.0f), new Vector3d(-3.0f, -1.0f, 2.0f)
-        },
-          pointsPerSegment);
+          using (var streamReader = File.OpenText("..\\newmodules\\JanMatejka-ScriptedAnimatedCamera\\CameraScript.txt"))
+          {
+            List<Vector3d> toBeInterpolated = new List<Vector3d>();
+
+            string line;
+
+            // pointsPerSegment parsing
+            line = streamReader.ReadLine();
+            var pointsPerSegmentSetting = Util.ParseKeyValueList(line);
+            pointsPerSegment = Convert.ToInt32(pointsPerSegmentSetting["pointsPerSegment"]);
+
+            // path parsing
+            while ((line = streamReader.ReadLine()) != null)
+            {
+              var pointSetting = Util.ParseKeyValueList(line);
+              var xyz = pointSetting["point"].Split(';');
+              toBeInterpolated.Add(new Vector3d(Convert.ToDouble(xyz[0], CultureInfo.InvariantCulture),
+                                                Convert.ToDouble(xyz[1], CultureInfo.InvariantCulture),
+                                                Convert.ToDouble(xyz[2], CultureInfo.InvariantCulture)));
+            }
+
+            interpolated = CatmullRomInterpolation(toBeInterpolated, pointsPerSegment);
+          }
+        }
+        catch (Exception ex) when (ex is FileNotFoundException)
+        {
+          // Default points
+          interpolated = CatmullRomInterpolation(new List<Vector3d>
+          {
+            new Vector3d(3.0f, 0.0f, 3.0f), new Vector3d(3.0f, 2.0f, 5.0f), new Vector3d(1.0f, 5.0f, 6.0f), new Vector3d(0.0f, 3.0f, 10.0f),
+            new Vector3d(-2.0f, -3.0f, 8.0f), new Vector3d(-3.0f, -1.0f, 2.0f)
+          },
+            pointsPerSegment);
+        }
 
         timeDiff = (End - Start) / interpolated.Count;
       }
@@ -44,6 +76,7 @@ namespace Rendering
         c.Start = Start;
         c.End = End;
         c.Time = Time;
+        c.timeDiff = (c.End - c.Start) / c.interpolated.Count;
         return c;
       }
 
