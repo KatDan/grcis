@@ -44,6 +44,7 @@ namespace Rendering
         c.Start = Start;
         c.End = End;
         c.Time = Time;
+        c.timeDiff = (c.End - c.Start) / c.interpolated.Count;
         return c;
       }
 
