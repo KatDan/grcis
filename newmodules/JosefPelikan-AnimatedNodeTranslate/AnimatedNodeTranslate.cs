@@ -1,8 +1,6 @@
-﻿using MathSupport;
-using OpenTK;
+﻿using OpenTK;
 using Rendering;
 using System;
-using Utilities;
 
 namespace JosefPelikan
 {
@@ -10,26 +8,26 @@ namespace JosefPelikan
   public class AnimatedNodeTranslate : AnimatedCSGInnerNode
   {
     /// <summary>
-    /// Property name (see 'PropertyAnimator').
+    /// Property name for data link between this object and ITimeDependentProperty.
     /// </summary>
     protected string name;
 
     /// <summary>
     /// Current translation vector.
     /// </summary>
-    Vector3d translate;
+    protected Vector3d translate;
 
     /// <summary>
     /// Original transform matrix (used for 'translate = Vector3d.Zero').
     /// </summary>
-    Matrix4d origin;
+    protected Matrix4d origin;
 
     protected override void setTime (double newTime)
     {
       time = newTime;
 
       // Animator was already Time-updated.
-      if (!((MT.scene?.Animator ?? null) is PropertyAnimator pa) ||
+      if (!((MT.scene?.Animator ?? null) is ITimeDependentProperty pa) ||
           pa == null ||
           !pa.TryGetValue(name, ref translate))
         return;

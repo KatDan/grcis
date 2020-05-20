@@ -10,8 +10,8 @@ Debug.Assert(scene != null);
 Debug.Assert(context != null);
 
 // Override image resolution and supersampling.
-context[PropertyName.CTX_WIDTH]         = 640;    // whatever is convenient for your debugging/testing/final rendering
-context[PropertyName.CTX_HEIGHT]        = 360;
+context[PropertyName.CTX_WIDTH]         = 720;    // whatever is convenient for your debugging/testing/final rendering
+context[PropertyName.CTX_HEIGHT]        = 480;
 context[PropertyName.CTX_SUPERSAMPLING] =  16;
 
 double end = 24.0;
@@ -22,27 +22,71 @@ context[PropertyName.CTX_FPS]           = 25.0;
 //////////////////////////////////////////////////
 // Preprocessing stage support.
 
+// ParameterAnimator.Property<> names.
+string namePos       = "partPos";
+string nameColor     = "colPos";
+string simulatorName = "simName";
+
+CatmullRomAnimator pa = new CatmullRomAnimator()
+{
+  Start =  0.0,
+  End   =  end
+};
+scene.Animator = pa;
+
 // Uncomment the block if you need preprocessing.
-/*
 if (Util.TryParseBool(context, PropertyName.CTX_PREPROCESSING))
 {
   double time = 0.0;
   bool single = Util.TryParse(context, PropertyName.CTX_TIME, ref time);
   // if (single) simulate only for a single frame with the given 'time'
 
-  // TODO: put your preprocessing code here!
-  //
-  // It will be run only this time.
-  // Store preprocessing results to arbitrary (non-reserved) context item,
-  //  subsequent script calls will find it there...
+  // Preprocessing = simulation (run only once)
+  ParticleSimulator ps = new ParticleSimulator(pa, 2.0);
+  context[simulatorName] = ps;
+  
+  Dictionary<string, object> par = new Dictionary<string, object>
+  {
+    { ParticleSimulator.PARTICLES,  150 },
+    { ParticleSimulator.CENTER,     new Vector3(0.0f, 0.0f, 0.0f) },
+    { ParticleSimulator.RADIUS,     0.8f },
+    { ParticleSimulator.POS_NAME,   namePos },
+    { ParticleSimulator.COLOR_NAME, nameColor },
+    { ParticleSimulator.MIN_SIZE,   0.05f },
+    { ParticleSimulator.MAX_SIZE,   0.25f },
+    { ParticleSimulator.MIN_COLOR,  0.5f },
+    { ParticleSimulator.MAX_COLOR,  1.0f },
+  };
+  
+  // Simulation job.
+  ps.Simulate(true, par, null, 12L);
+  
+  return;
 }
-*/
 
+//////////////////////////////////////////////////
+// Retrive shared preprocessed data.
+
+PropertyAnimator.Property<Vector4[]> propPos;
+PropertyAnimator.Property<Vector3[]> propColor;
+
+if (context.TryGetValue(simulatorName, out object os) &&
+    os is ParticleSimulator pss)
+{
+  propPos   = pss.GetProperty<Vector4[]>(namePos);
+  propColor = pss.GetProperty<Vector3[]>(nameColor);
+  pa.setProperty(propPos);
+  pa.setProperty(propColor);
+}
+               
 // Optional override of rendering algorithm and/or renderer.
 
-/*
-context[PropertyName.CTX_ALGORITHM] = new RayTracing();
+context[PropertyName.CTX_ALGORITHM] = new RayTracing
+{
+  MaxLevel = 25
+};
 
+/*
 int ss = 0;
 if (Util.TryParse(context, PropertyName.CTX_SUPERSAMPLING, ref ss) &&
     ss > 1)
@@ -95,78 +139,6 @@ root.SetAttribute(PropertyName.REFLECTANCE_MODEL, new PhongModel());
 root.SetAttribute(PropertyName.MATERIAL, new PhongMaterial(new double[] {1.0, 0.8, 0.1}, 0.1, 0.6, 0.4, 128));
 scene.Intersectable = root;
 
-// Optional Animator.
-string namePos   = "partPos";
-string nameColor = "colPos";
-
-CatmullRomAnimator pa = new CatmullRomAnimator()
-{
-  Start =  0.0,
-  End   =  end
-};
-pa.newProperty(namePos, 0.0, end, 8.0,
-               PropertyAnimator.InterpolationStyle.Cyclic,
-               new List<Vector4d[]>()
-               {
-                 new Vector4d[]
-                 {
-                   new Vector4d(0.0, 0.2,-0.2, 0.4),
-                   new Vector4d(2.0, 0.2,-0.2, 0.2),
-                   new Vector4d(2.0, 1.2, 0.0, 1.5),
-                   new Vector4d(0.0, 2.2, 0.0, 1.8),
-                 },
-                 new Vector4d[]
-                 {
-                   new Vector4d(2.0, 0.2,-0.2, 0.2),
-                   new Vector4d(2.0, 1.2, 0.0, 1.5),
-                   new Vector4d(0.0, 2.2, 0.0, 1.8),
-                   new Vector4d(0.0, 0.2,-0.2, 0.4),
-                 },
-                 new Vector4d[]
-                 {
-                   new Vector4d(2.0, 1.2, 0.0, 1.5),
-                   new Vector4d(0.0, 2.2, 0.0, 1.8),
-                   new Vector4d(0.0, 0.2,-0.2, 0.4),
-                   new Vector4d(2.0, 0.2,-0.2, 0.2),
-                 },
-                 new Vector4d[]
-                 {
-                   new Vector4d(0.0, 2.2, 0.0, 1.8),
-                   new Vector4d(0.0, 0.2,-0.2, 0.4),
-                   new Vector4d(2.0, 0.2,-0.2, 0.2),
-                   new Vector4d(2.0, 1.2, 0.0, 1.5),
-                 },
-               },
-               true);
-pa.newProperty(nameColor, 0.0, end, 6.0,
-               PropertyAnimator.InterpolationStyle.Cyclic,
-               new List<Vector3[]>()
-               {
-                 new Vector3[]
-                 {
-                   new Vector3(1.0f, 0.3f, 0.2f),
-                   new Vector3(0.5f, 0.9f, 0.5f),
-                   new Vector3(0.2f, 0.2f, 1.0f),
-                   new Vector3(0.0f, 0.8f, 1.0f),
-                 },
-                 new Vector3[]
-                 {
-                   new Vector3(0.3f, 0.9f, 0.2f),
-                   new Vector3(0.0f, 0.3f, 0.7f),
-                   new Vector3(0.4f, 0.4f, 0.1f),
-                   new Vector3(0.3f, 0.7f, 0.6f),
-                 },
-                 new Vector3[]
-                 {
-                   new Vector3(0.5f, 0.5f, 0.8f),
-                   new Vector3(0.7f, 0.4f, 0.6f),
-                   new Vector3(0.2f, 0.6f, 0.8f),
-                   new Vector3(0.2f, 0.4f, 1.0f),
-                 },
-               },
-               true);
-scene.Animator = pa;
-
 // Background color.
 scene.BackgroundColor = new double[] {0.0, 0.02, 0.02};
 scene.Background = new StarBackground(scene.BackgroundColor, 600, 0.008, 0.5, 1.6, 1.0);
@@ -209,7 +181,8 @@ root.InsertChild(s, Matrix4d.RotateX(-MathHelper.PiOver2) * Matrix4d.CreateTrans
 RecursionFunction del = (Intersection i, Vector3d dir, double importance, out RayRecursion rr) =>
 {
   double direct = 1.0 - i.TextureCoord.X;
-  direct = Math.Pow(direct * direct, 6.0);
+  direct *= direct;
+  direct *= direct;
 
   rr = new RayRecursion(
     Util.ColorClone(i.SurfaceColor, direct),
@@ -220,22 +193,10 @@ RecursionFunction del = (Intersection i, Vector3d dir, double importance, out Ra
 
 // Particle object.
 s = new ChaoticParticles(
-  new Vector4d[]
-  {
-    new Vector4d(0.0, 0.2,-0.2, 0.4),
-    new Vector4d(2.0, 0.2,-0.2, 0.2),
-    new Vector4d(2.0, 1.2, 0.0, 1.5),
-    new Vector4d(0.0, 2.2, 0.0, 1.8),
-  },
-  new Vector3[]
-  {
-    new Vector3(1.0f, 0.3f, 0.2f),
-    new Vector3(0.5f, 0.9f, 0.5f),
-    new Vector3(0.2f, 0.2f, 1.0f),
-    new Vector3(0.0f, 0.8f, 1.0f),
-  },
+  (propPos   != null) ? propPos.data[0] : null,
+  (propColor != null) ? propColor.data[0] : null,
   namePos, nameColor);
 s.SetAttribute(PropertyName.RECURSION, del);
 s.SetAttribute(PropertyName.NO_SHADOW, true);
 s.SetAttribute(PropertyName.COLOR, new double[] {0.3, 0.9, 1.0});
-root.InsertChild(s, Matrix4d.CreateTranslation(0.0, -0.5, -2.0));
+root.InsertChild(s, Matrix4d.CreateTranslation(0.0, 2.0, -3.0));
