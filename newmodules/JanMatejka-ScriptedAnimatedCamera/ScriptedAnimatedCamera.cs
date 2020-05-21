@@ -15,6 +15,7 @@ namespace Rendering
       public ScriptedAnimatedCamera (Vector3d lookat, Vector3d cen, double ang)
         : base(cen, lookat - cen, ang)
       {
+        pointTimes = new List<double>();
         // Defaults:
         lookAt = lookat;
         center0 = cen;
@@ -24,7 +25,6 @@ namespace Rendering
 
         // Catmull-Rom interpolation loading
         pointsPerSegment = 75;
-        timeDiff = 0d;
 
         try
         {
@@ -47,13 +47,28 @@ namespace Rendering
               toBeInterpolated.Add(new Vector3d(Convert.ToDouble(xyz[0], CultureInfo.InvariantCulture),
                                                 Convert.ToDouble(xyz[1], CultureInfo.InvariantCulture),
                                                 Convert.ToDouble(xyz[2], CultureInfo.InvariantCulture)));
+
+              pointTimes.Add(Convert.ToDouble(pointSetting["t"], CultureInfo.InvariantCulture));
             }
 
+            // First two times are irrelevant (the points are not in the actual path)
+            pointTimes.RemoveAt(pointTimes.Count - 1);
+            pointTimes.RemoveAt(0);
+
+            // Catmull-Rom Spline interpolation
             interpolated = CatmullRomInterpolation(toBeInterpolated, pointsPerSegment);
+
+            // Remove duplicate points (there are alway 2 in a row)
+            for (int i = 1; i < interpolated.Count; i++)
+            {
+              if (interpolated[i - 1] == interpolated[i])
+                interpolated.RemoveAt(i);
+            }
           }
         }
         catch (Exception ex) when (ex is FileNotFoundException)
         {
+          pointTimes = new List<double> { 0.0d, 1d, 1.5d, 2.0d };
           // Default points
           interpolated = CatmullRomInterpolation(new List<Vector3d>
           {
@@ -63,7 +78,7 @@ namespace Rendering
             pointsPerSegment);
         }
 
-        timeDiff = (End - Start) / interpolated.Count;
+        timeDiff = (pointTimes[1] - pointTimes[0]) / pointsPerSegment;
       }
 
       /// <summary>
@@ -76,7 +91,7 @@ namespace Rendering
         c.Start = Start;
         c.End = End;
         c.Time = Time;
-        c.timeDiff = (c.End - c.Start) / c.interpolated.Count;
+        c.timeDiff = timeDiff;
         return c;
       }
 
@@ -121,6 +136,9 @@ namespace Rendering
 
         time = newTime;    // Here Start & End define a periodicity, not bounds!
 
+        if (newTime != 0)
+          UpdateTimeDiff(newTime);
+
         // change the camera position:
         center = interpolated[GetInterpolatedIndex()];
         direction = lookAt - center;
@@ -149,6 +167,16 @@ namespace Rendering
       protected List<Vector3d> interpolated;
 
       /// <summary>
+      /// List of times for each point in the camera script
+      /// </summary>
+      protected List<double> pointTimes;
+
+      /// <summary>
+      /// Current segment of interpolated points calculated from current Time
+      /// </summary>
+      protected int currentSegment = 0;
+
+      /// <summary>
       /// Time in seconds after which should the camera jump to new point
       /// </summary>
       protected double timeDiff;
@@ -158,13 +186,35 @@ namespace Rendering
       /// </summary>
       protected int GetInterpolatedIndex ()
       {
-        int ret = (int)Math.Round(Time/timeDiff);
+        int ret = (int)Math.Floor((Time - pointTimes[currentSegment])/timeDiff);
+        ret += currentSegment * pointsPerSegment;
         if (ret >= interpolated.Count)
         {
-          ret = 0;
-          Time = Start;
+          return interpolated.Count - 1;
         }
         return ret;
+      }
+
+      /// <summary>
+      /// Updates the timeDiff variable according to time. Also updates currentSegment.
+      /// </summary>
+      /// <param name="time"></param>
+      protected void UpdateTimeDiff(double time)
+      {
+        int index = pointTimes.BinarySearch(time);
+        if (index < 0)
+        {
+          if (~index != pointTimes.Count)
+            timeDiff = (pointTimes[~index] - pointTimes[~index - 1]) / pointsPerSegment;
+          else
+            timeDiff = (pointTimes[pointTimes.Count - 1] - pointTimes[pointTimes.Count - 2]) / pointsPerSegment;
+          currentSegment = ~index - 1;
+        }
+        else
+        {
+          timeDiff = (pointTimes[index] - pointTimes[index - 1]) / pointsPerSegment;
+          currentSegment = index - 1;
+        }
       }
 
       /// <summary>
@@ -199,9 +249,9 @@ namespace Rendering
       }
 
       protected static Matrix4 CatmullRomMatrix = new Matrix4(new Vector4(0f, 2f, 0f, 0f),
-                                                            new Vector4(-1f, 0f, 1f, 0f),
-                                                            new Vector4(2f, -5f, 4f, -1f),
-                                                            new Vector4(-1f, 3f, -3f, 1f));
+                                                              new Vector4(-1f, 0f, 1f, 0f),
+                                                              new Vector4(2f, -5f, 4f, -1f),
+                                                              new Vector4(-1f, 3f, -3f, 1f));
 
       /// <summary>
       /// Computes one interpolated point.

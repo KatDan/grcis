@@ -13,7 +13,7 @@ if (context != null)
   context[PropertyName.CTX_SUPERSAMPLING] =   1;
 
   context[PropertyName.CTX_START_ANIM]    =  0.0;
-  context[PropertyName.CTX_END_ANIM]      = 3.0;
+  context[PropertyName.CTX_END_ANIM]      = 3.5;
   context[PropertyName.CTX_FPS]           = 25.0;
 
   // context["ToolTip"] indicates whether the script is running for the first time (preprocessing) or for regular rendering.
