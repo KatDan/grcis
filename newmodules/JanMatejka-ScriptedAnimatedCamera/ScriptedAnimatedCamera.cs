@@ -30,7 +30,8 @@ namespace Rendering
         {
           using (var streamReader = File.OpenText("..\\newmodules\\JanMatejka-ScriptedAnimatedCamera\\CameraScript.txt"))
           {
-            List<Vector3d> toBeInterpolated = new List<Vector3d>();
+            List<Vector3d> toBeInterpolatedPath = new List<Vector3d>();
+            List<Vector3d> toBeInterpolatedLookAt = new List<Vector3d>();
 
             string line;
 
@@ -43,10 +44,16 @@ namespace Rendering
             while ((line = streamReader.ReadLine()) != null)
             {
               var pointSetting = Util.ParseKeyValueList(line);
+
               var xyz = pointSetting["point"].Split(';');
-              toBeInterpolated.Add(new Vector3d(Convert.ToDouble(xyz[0], CultureInfo.InvariantCulture),
-                                                Convert.ToDouble(xyz[1], CultureInfo.InvariantCulture),
-                                                Convert.ToDouble(xyz[2], CultureInfo.InvariantCulture)));
+              toBeInterpolatedPath.Add(new Vector3d(Convert.ToDouble(xyz[0], CultureInfo.InvariantCulture),
+                                                    Convert.ToDouble(xyz[1], CultureInfo.InvariantCulture),
+                                                    Convert.ToDouble(xyz[2], CultureInfo.InvariantCulture)));
+
+              xyz = pointSetting["lookAt"].Split(';');
+              toBeInterpolatedLookAt.Add(new Vector3d(Convert.ToDouble(xyz[0], CultureInfo.InvariantCulture),
+                                                      Convert.ToDouble(xyz[1], CultureInfo.InvariantCulture),
+                                                      Convert.ToDouble(xyz[2], CultureInfo.InvariantCulture)));
 
               pointTimes.Add(Convert.ToDouble(pointSetting["t"], CultureInfo.InvariantCulture));
             }
@@ -56,24 +63,39 @@ namespace Rendering
             pointTimes.RemoveAt(0);
 
             // Catmull-Rom Spline interpolation
-            interpolated = CatmullRomInterpolation(toBeInterpolated, pointsPerSegment);
+            interpolatedPath = CatmullRomInterpolation(toBeInterpolatedPath, pointsPerSegment);
+            interpolatedLookAt = CatmullRomInterpolation(toBeInterpolatedLookAt, pointsPerSegment);
 
             // Remove duplicate points (there are alway 2 in a row)
-            for (int i = 1; i < interpolated.Count; i++)
+            for (int i = 1; i < interpolatedPath.Count; i++)
             {
-              if (interpolated[i - 1] == interpolated[i])
-                interpolated.RemoveAt(i);
+              if (interpolatedPath[i - 1] == interpolatedPath[i])
+                interpolatedPath.RemoveAt(i);
+            }
+            // Remove duplicate points (there are alway 2 in a row)
+            for (int i = 1; i < interpolatedLookAt.Count; i++)
+            {
+              if (interpolatedLookAt[i - 1] == interpolatedLookAt[i])
+                interpolatedLookAt.RemoveAt(i);
             }
           }
         }
         catch (Exception ex) when (ex is FileNotFoundException)
         {
           pointTimes = new List<double> { 0.0d, 1d, 1.5d, 2.0d };
+
           // Default points
-          interpolated = CatmullRomInterpolation(new List<Vector3d>
+          interpolatedPath = CatmullRomInterpolation(new List<Vector3d>
           {
-            new Vector3d(3.0f, 0.0f, 3.0f), new Vector3d(3.0f, 2.0f, 5.0f), new Vector3d(1.0f, 5.0f, 6.0f), new Vector3d(0.0f, 3.0f, 10.0f),
-            new Vector3d(-2.0f, -3.0f, 8.0f), new Vector3d(-3.0f, -1.0f, 2.0f)
+            new Vector3d(3.0d, 0.0d, 3.0d), new Vector3d(3.0d, 2.0d, 5.0d), new Vector3d(1.0d, 5.0d, 6.0d), new Vector3d(0.0d, 3.0d, 10.0d),
+            new Vector3d(-2.0d, -3.0d, 8.0d), new Vector3d(-3.0d, -1.0d, 2.0d)
+          },
+            pointsPerSegment);
+
+          interpolatedLookAt = CatmullRomInterpolation(new List<Vector3d>
+          {
+            new Vector3d(0.7d, -0.4d, 0.0d), new Vector3d(0.7d, -0.4d, 0.0d), new Vector3d(1.7d, -0.7d, 0.8d), new Vector3d(1.5d, -1.4d, 1.0d),
+            new Vector3d(5.5d, -5.4d, 0.0d), new Vector3d(7.5d, -7.4d, 0.0d)
           },
             pointsPerSegment);
         }
@@ -140,7 +162,9 @@ namespace Rendering
           UpdateTimeDiff(newTime);
 
         // change the camera position:
-        center = interpolated[GetInterpolatedIndex()];
+        var index = GetInterpolatedIndex();
+        center = interpolatedPath[index];
+        lookAt = interpolatedLookAt[index];
         direction = lookAt - center;
         direction.Normalize();
         prepare();
@@ -164,7 +188,9 @@ namespace Rendering
       /// <summary>
       /// List of interpolated points
       /// </summary>
-      protected List<Vector3d> interpolated;
+      protected List<Vector3d> interpolatedPath;
+
+      protected List<Vector3d> interpolatedLookAt;
 
       /// <summary>
       /// List of times for each point in the camera script
@@ -188,9 +214,9 @@ namespace Rendering
       {
         int ret = (int)Math.Floor((Time - pointTimes[currentSegment])/timeDiff);
         ret += currentSegment * pointsPerSegment;
-        if (ret >= interpolated.Count)
+        if (ret >= interpolatedPath.Count)
         {
-          return interpolated.Count - 1;
+          return interpolatedPath.Count - 1;
         }
         return ret;
       }
