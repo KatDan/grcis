@@ -18,28 +18,28 @@ namespace Rendering
         {
             public WoodenTexture (int seed = 1337)
             {
-              perlinNoise = new PerlinNoise(seed);
+            perlinNoise = new PerlinNoise(seed);
             }
         
             public WoodenTexture (double lineFrequency, int seed = 1337)
             {
-              this.LineFrequency = lineFrequency;
-              perlinNoise = new PerlinNoise(seed);
+            this.LineFrequency = lineFrequency;
+            perlinNoise = new PerlinNoise(seed);
             }
         
             public WoodenTexture (double[] firstColor, double[] secondColor, int seed = 1337)
             {
-              Array.Copy(firstColor, this.FirstColor, this.FirstColor.Length);
-              Array.Copy(secondColor, this.SecondColor, this.SecondColor.Length);
-              perlinNoise = new PerlinNoise(seed);
+            Array.Copy(firstColor, this.FirstColor, this.FirstColor.Length);
+            Array.Copy(secondColor, this.SecondColor, this.SecondColor.Length);
+            perlinNoise = new PerlinNoise(seed);
             }
         
             public WoodenTexture (double[] firstColor, double[] secondColor, double lineFrequency, int seed = 1337)
             {
-              Array.Copy(firstColor, this.FirstColor, this.FirstColor.Length);
-              Array.Copy(secondColor, this.SecondColor, this.SecondColor.Length);
-              this.LineFrequency = lineFrequency;
-              perlinNoise = new PerlinNoise(seed);
+            Array.Copy(firstColor, this.FirstColor, this.FirstColor.Length);
+            Array.Copy(secondColor, this.SecondColor, this.SecondColor.Length);
+            this.LineFrequency = lineFrequency;
+            perlinNoise = new PerlinNoise(seed);
             }
         
             /// <summary>
@@ -50,18 +50,18 @@ namespace Rendering
             /// <returns>Hash value (texture signature) for adaptive subsampling.</returns>
             public virtual long Apply (Intersection inter)
             {
-              double noise = (inter.CoordLocal.X * inter.CoordLocal.X + inter.CoordLocal.Z * inter.CoordLocal.Z +
+            double noise = (inter.CoordLocal.X * inter.CoordLocal.X + inter.CoordLocal.Z * inter.CoordLocal.Z +
                 perlinNoise.Noise(inter.CoordLocal.X, inter.CoordLocal.Y, inter.CoordLocal.Z)) * LineFrequency % 1;
         
-              FinalColor[0] = FirstColor[0] + noise * (SecondColor[0] - FirstColor[0]);
-              FinalColor[1] = FirstColor[1] + noise * (SecondColor[1] - FirstColor[1]);
-              FinalColor[2] = FirstColor[2] + noise * (SecondColor[2] - FirstColor[2]);
+            FinalColor[0] = FirstColor[0] + noise * (SecondColor[0] - FirstColor[0]);
+            FinalColor[1] = FirstColor[1] + noise * (SecondColor[1] - FirstColor[1]);
+            FinalColor[2] = FirstColor[2] + noise * (SecondColor[2] - FirstColor[2]);
         
-              Util.ColorCopy(FinalColor, inter.SurfaceColor);
+            Util.ColorCopy(FinalColor, inter.SurfaceColor);
         
-              inter.textureApplied = true; // warning - this changes textureApplied bool even when only one texture was applied - not all of them
+            inter.textureApplied = true; // warning - this changes textureApplied bool even when only one texture was applied - not all of them
         
-              return (long)RandomStatic.numericRecipes((ulong)(noise*100000000000000000));
+            return (long)RandomStatic.numericRecipes((ulong)(noise*100000000000000000));
             }
         
             private double[] FirstColor = new double[] {0.5294, 0.2706, 0.1412 };
