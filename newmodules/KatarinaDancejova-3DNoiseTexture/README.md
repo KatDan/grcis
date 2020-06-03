@@ -8,18 +8,15 @@
 
 ### Namespace: KatarinaDancejova
 
-### Class names: PerlinNoise : ITexture
-###              Wood : ITexture
-###              Marble : ITexture
-###              Porcelain : ITexture
-###              Flakes : ITexture
-###              Opal : ITexture
+### Class names: PerlinNoise : ITexture, Wood : ITexture, Marble : ITexture, Porcelain : ITexture, Flakes : ITexture, Opal : ITexture
 
 ### ITimeDependent: No
 
 ### Source file: 3DNoiseTexture.cs
 
 This extension implements pseudo-random noise, called Perlin noise and textures derived from it. The textures are applied using the world coordinates of the object (so it might be needed to change the texture parameters after editing the size, location or shape of the object).  
+
+<br>
 
 ## PerlinNoise : ITexture
 This class generates noise used for creation of other textures. It is also appliable as a texture itself.
