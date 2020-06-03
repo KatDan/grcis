@@ -61,7 +61,7 @@ namespace KatarinaDancejova
 
     public long Apply (Intersection inter)
     {
-      double q = MakeSomeNoise(inter.CoordWorld.X * frequency, inter.CoordWorld.Y * frequency, inter.CoordWorld.Z * frequency);
+      double q = MakeSomeNoise(inter.CoordObject.X * frequency, inter.CoordObject.Y * frequency, inter.CoordObject.Z * frequency);
 
       for (int i = 0; i < inter.SurfaceColor.Length; i++)
       {
@@ -168,9 +168,9 @@ namespace KatarinaDancejova
 
     public long Apply (Intersection inter)
     {
-      double u = inter.CoordWorld.X;
-      double v = inter.CoordWorld.Y;
-      double w = inter.CoordWorld.Z;
+      double u = inter.CoordObject.X;
+      double v = inter.CoordObject.Y;
+      double w = inter.CoordObject.Z;
 
       double value = 0;
       double depth = maxDepth;
@@ -393,7 +393,7 @@ namespace KatarinaDancejova
 
     public long Apply (Intersection inter)
     {
-      double q = PerlinNoise.MakeSomeNoise((inter.CoordWorld.X)*frequency, (inter.CoordWorld.Y)*frequency,(inter.CoordWorld.Z)*frequency );
+      double q = PerlinNoise.MakeSomeNoise((inter.CoordObject.X)*frequency, (inter.CoordObject.Y)*frequency,(inter.CoordObject.Z)*frequency );
       int mod = ((int)(flakeFade * q))%cascadity;
       q = (double)mod / cascadity;
 
@@ -443,9 +443,9 @@ namespace KatarinaDancejova
 
     public long Apply (Intersection inter)
     {
-      double u = inter.CoordWorld.X;
-      double v = inter.CoordWorld.Y;
-      double w = inter.CoordWorld.Z;
+      double u = inter.CoordObject.X;
+      double v = inter.CoordObject.Y;
+      double w = inter.CoordObject.Z;
 
       double q = PerlinNoise.MakeSomeNoise(u*frequency,v*frequency,w*frequency) + u * v * w * diffusion;
 

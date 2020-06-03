@@ -14,7 +14,7 @@
 
 ### Source file: 3DNoiseTexture.cs
 
-This extension implements pseudo-random noise, called Perlin noise and textures derived from it. The textures are applied using the world coordinates of the object (so it might be needed to change the texture parameters after editing the size, location or shape of the object).  
+This extension implements pseudo-random noise, called Perlin noise and textures derived from it. The textures are applied using the object coordinates of an intersection.  
 
 <br>
 
@@ -66,7 +66,7 @@ d. double **flakeFade** - affects whether the flakes are fading to the inside an
 This class generates an interesting, exotic and unpredictable opal-like texture.
 
 User can edit these parameters:
-a. double[] **Color1** and **Color2** - the colors of the texture, they might not be the only ones appering in the result
+a. double[] **Color1** and **Color2** - the colors of the texture, they might not be the only ones appearing in the result
 b. double **frequency** - changes the frequency of the "opal eyes" in the texture
 c. double **diffusion** - changes the diffusivity of the eyes to the surroundings
 
