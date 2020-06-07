@@ -113,6 +113,20 @@ namespace Rendering
         }
       }
 
+      public double OctavesNoise(double x, double y, double z, int octaves = 8, double perstistence = 0.5)
+      {
+        double ret = 0;
+        double frequency = 1;
+        double amplitude = 1;
+        for (int i = 0; i < octaves; i++)
+        {
+          ret = ret + amplitude * Noise(x * frequency, y * frequency, z * frequency);
+          frequency *= 1 / perstistence;
+          amplitude *= perstistence;
+        }
+        return ret;
+      }
+
       // Permutation of numbers from 0 to 255 (the array is doubled to avoid using division (%) when indexing in the Hash function)
       // Serves as a hash lookup table
       private List<byte> Permutation = new List<byte>

@@ -21,9 +21,12 @@ namespace Rendering
         perlinNoise = new PerlinNoise(seed);
       }
 
-      public WoodenTexture (double lineFrequency, int seed = 1337)
+      public WoodenTexture (double lineFrequency, int octaves, double persistence, double distortion, int seed = 1337)
       {
         this.LineFrequency = lineFrequency;
+        this.Octaves = octaves;
+        this.Persistence = persistence;
+        this.Distortion = distortion;
         perlinNoise = new PerlinNoise(seed);
       }
 
@@ -34,11 +37,14 @@ namespace Rendering
         perlinNoise = new PerlinNoise(seed);
       }
 
-      public WoodenTexture (double[] firstColor, double[] secondColor, double lineFrequency, int seed = 1337)
+      public WoodenTexture (double[] firstColor, double[] secondColor, double lineFrequency, int octaves, double persistence, double distortion, int seed = 1337)
       {
         Array.Copy(firstColor, this.FirstColor, this.FirstColor.Length);
         Array.Copy(secondColor, this.SecondColor, this.SecondColor.Length);
         this.LineFrequency = lineFrequency;
+        this.Octaves = octaves;
+        this.Persistence = persistence;
+        this.Distortion = distortion;
         perlinNoise = new PerlinNoise(seed);
       }
 
@@ -50,12 +56,14 @@ namespace Rendering
       /// <returns>Hash value (texture signature) for adaptive subsampling.</returns>
       public virtual long Apply (Intersection inter)
       {
-        double noise = (inter.CoordLocal.X * inter.CoordLocal.X + inter.CoordLocal.Z * inter.CoordLocal.Z +
-                perlinNoise.Noise(inter.CoordLocal.X, inter.CoordLocal.Y, inter.CoordLocal.Z)) * LineFrequency % 1;
-
-        FinalColor[0] = FirstColor[0] + noise * (SecondColor[0] - FirstColor[0]);
-        FinalColor[1] = FirstColor[1] + noise * (SecondColor[1] - FirstColor[1]);
-        FinalColor[2] = FirstColor[2] + noise * (SecondColor[2] - FirstColor[2]);
+        var noise = perlinNoise.OctavesNoise(inter.CoordLocal.X, inter.CoordLocal.Y, inter.CoordLocal.Z, Octaves, Persistence);
+        var distance = Math.Sqrt(inter.CoordLocal.X * inter.CoordLocal.X + inter.CoordLocal.Y * inter.CoordLocal.Y)
+          + Math.Sin(noise)*Distortion;
+        var result = distance / 0.60;
+        var sine = Math.Sin(result*LineFrequency);
+        FinalColor[0] = FirstColor[0] + sine * (SecondColor[0] - FirstColor[0]);
+        FinalColor[1] = FirstColor[1] + sine * (SecondColor[1] - FirstColor[1]);
+        FinalColor[2] = FirstColor[2] + sine * (SecondColor[2] - FirstColor[2]);
 
         Util.ColorCopy(FinalColor, inter.SurfaceColor);
 
@@ -67,7 +75,10 @@ namespace Rendering
       private double[] FirstColor = new double[] {0.5294, 0.2706, 0.1412 };
       private double[] SecondColor = new double[] {0.1922, 0.1176, 0.0549 };
       private double[] FinalColor = new double[3];
-      private double LineFrequency = 5d;
+      private double LineFrequency = 50d;
+      private int Octaves = 8;
+      private double Persistence = 0.7d;
+      private double Distortion = 0.1d;
       private PerlinNoise perlinNoise;
     }
   }
