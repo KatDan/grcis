@@ -56,9 +56,17 @@ namespace Rendering
       /// <returns>Hash value (texture signature) for adaptive subsampling.</returns>
       public virtual long Apply (Intersection inter)
       {
-        var noise = perlinNoise.OctavesNoise(inter.CoordLocal.X, inter.CoordLocal.Y, inter.CoordLocal.Z, Octaves, Persistence);
-        var distance = Math.Sqrt(inter.CoordLocal.X * inter.CoordLocal.X + inter.CoordLocal.Y * inter.CoordLocal.Y)
-          + Math.Sin(noise)*Distortion;
+        // Computation of the middle point the wood circles begin from
+        Vector3d v1, v2;
+        inter.Solid.GetBoundingBox(out v1, out v2);
+        Vector3d mid = new Vector3d(v1.X + Math.Abs(v1.X - v2.X)/2, v1.Y + Math.Abs(v1.Y - v2.Y)/2, 0d);
+        var x = inter.CoordLocal.X - mid.X;
+        var y = inter.CoordLocal.Y - mid.Y;
+        var z = inter.CoordLocal.Z;
+
+        // Compute the texture
+        var noise = perlinNoise.OctavesNoise(x, y, z, Octaves, Persistence);
+        var distance = Math.Sqrt(x * x + y * y) + Math.Sin(noise)*Distortion;
         var result = distance / 0.60;
         var sine = Math.Sin(result*LineFrequency);
         FinalColor[0] = FirstColor[0] + sine * (SecondColor[0] - FirstColor[0]);

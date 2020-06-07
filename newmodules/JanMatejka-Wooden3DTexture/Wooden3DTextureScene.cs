@@ -31,14 +31,14 @@ scene.Sources.Add(new PointLightSource(new Vector3d(-5.0, 3.0, -3.0), 1.0));
 
 // Sphere
 Sphere s = new Sphere();
-root.InsertChild(s, Matrix4d.Identity);
-s.SetAttribute(PropertyName.TEXTURE, new WoodenTexture(1337));
+root.InsertChild(s, Matrix4d.CreateRotationY(0.785398163) * Matrix4d.CreateRotationX(0.34906585));
+s.SetAttribute(PropertyName.TEXTURE, new WoodenTexture(50,8,0.7,0.1));
 s.SetAttribute(PropertyName.MATERIAL, new PhongMaterial(new double[] { 1.0, 0.8, 0.1 }, 0.1, 0.1, 0.01, 5));
 
 // Cube
 Cube c = new Cube();
-root.InsertChild(c, Matrix4d.Scale(1.2) * Matrix4d.CreateTranslation(1.5, 0.2, 2.4));
-c.SetAttribute(PropertyName.TEXTURE, new WoodenTexture(new double[] { 0.0, 1.0, 0.0 }, new double[] { 0.0, 0.3922, 0.0 }));
+root.InsertChild(c, Matrix4d.CreateRotationY(5.49778714) * Matrix4d.CreateRotationX(5.93411946) * Matrix4d.Scale(1.2) * Matrix4d.CreateTranslation(2.5, -0.5, 2.4));
+c.SetAttribute(PropertyName.TEXTURE, new WoodenTexture(50, 8, 0.7, 0.1));
 c.SetAttribute(PropertyName.MATERIAL, new PhongMaterial(new double[] { 1.0, 0.8, 0.1 }, 0.1, 0.1, 0.01, 5));
 
 // Infinite plane with checker.
