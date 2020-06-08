@@ -1,6 +1,6 @@
 # Glossy effect for rendering
 
-This extension adds new way to render objects, where imperfect reflections now create *glossy* effect on surfaces.
+This extension adds new way to render objects, where imperfect reflections now create *glossy* effect on surfaces. **Works only with Phong Materials.**
 
 ![Glossy surface example](glossyexample.png)
 

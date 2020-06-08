@@ -165,8 +165,11 @@ namespace JiriMuller
         Geometry.SpecularReflection(ref i.Normal, ref p1, out r);
 
         // This is all what we changed in this class:
-        double H = ((PhongMaterial)i.Material).H;
-        RandomizeReflectionVector(ref r, H);
+        // only apply on objects using Phong material, otherwise skip
+        if  (i.ReflectanceModel is PhongModel && i.Material is PhongMaterial m)
+        {
+          RandomizeReflectionVector(ref r, m.H);
+        }
         // end of change
 
         double[] ks = i.ReflectanceModel.ColorReflection(i, p1, r, ReflectionComponent.SPECULAR_REFLECTION);
