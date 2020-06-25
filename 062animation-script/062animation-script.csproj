@@ -183,15 +183,26 @@
     <Compile Include="..\common\WorkloadDistributionDummy.cs">
       <Link>WorkloadDistributionDummy.cs</Link>
     </Compile>
+    <Compile Include="3DNoiseTexture.cs" />
+    <Compile Include="AnimatedNodeTranslate.cs" />
+    <Compile Include="AnimatedSceneStars.cs" />
+    <Compile Include="AnimatedSceneTranslate.cs" />
+    <Compile Include="Fire.cs" />
+    <Compile Include="FireScene.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="MathUtils.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RayTracingAnim.cs" />
+    <Compile Include="ScriptedAnimatedCamera.cs" />
+    <Compile Include="ScriptedAnimatedCameraAnimatedScene.cs" />
+    <Compile Include="StarBackground.cs" />
+    <Compile Include="TwoSpheresStars.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>

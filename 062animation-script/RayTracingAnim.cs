@@ -2,6 +2,10 @@
 using Rendering;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Rendering.JanMatejka;
+using KatarinaDancejova;
+using MartinVasina;
+
 
 namespace _062animation
 {
@@ -14,7 +18,7 @@ namespace _062animation
       string[] args,
       out string name)
     {
-      name = "Josef Pelikán";
+      name = "Katarína Dančejová";
 
       Form1 f = Form1.singleton;
 
@@ -109,7 +113,7 @@ namespace Rendering
     public static IRayScene Init (IRayScene sc, string param)
     {
       // !!!{{ TODO: .. and use your time-dependent objects to construct the scene
-
+      
       // This code is based on Scenes.TwoSpheres():
 
       // CSG scene:
@@ -122,9 +126,9 @@ namespace Rendering
       sc.BackgroundColor = new double[] {0.0, 0.05, 0.07};
 
       // Camera:
-      AnimatedCamera cam = new AnimatedCamera(new Vector3d(0.7, -0.4,  0.0),
-                                              new Vector3d(0.7,  0.8, -6.0),
-                                              50.0 );
+      ScriptedAnimatedCamera cam = new ScriptedAnimatedCamera(new Vector3d(0, 0,  0.9),
+                                                        new Vector3d(0.0,  0.0, 0.0),
+                                                        50.0 );
       cam.End = 20.0;            // one complete turn takes 20.0 seconds
       if (sc is AnimatedRayScene asc)
         asc.End = 20.0;
