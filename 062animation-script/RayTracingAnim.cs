@@ -2,6 +2,9 @@
 using Rendering;
 using System.Collections.Generic;
 using System.Diagnostics;
+using KatarinaDancejova;
+using MartinVasina;
+using Rendering.JanMatejka;
 
 namespace _062animation
 {
@@ -14,7 +17,7 @@ namespace _062animation
       string[] args,
       out string name)
     {
-      name = "Josef Pelikán";
+      name = "Katarína Dančejová";
 
       Form1 f = Form1.singleton;
 
