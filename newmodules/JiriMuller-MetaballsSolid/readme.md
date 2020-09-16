@@ -53,4 +53,4 @@ container.AddMetaball(m, new Vector3d(1.99, -0.2, -5));
 
 Image:
 ==
-![Metaballs example](metaballs.png)
+![Metaballs example](metaballs2.png)

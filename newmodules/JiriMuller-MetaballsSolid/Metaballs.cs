@@ -4,7 +4,7 @@ using Rendering;
 
 namespace JiriMuller
 {
-  public class MetaballsContainer : DefaultSceneNode, ISolid
+  public class MetaballsContainer : DefaultSceneNode, ISolid, ITimeDependent
   {
     /// <summary>
     /// List of all metaballs inside this container
@@ -25,16 +25,35 @@ namespace JiriMuller
     /// Metaballs potential threshold
     /// </summary>
     public double Threshold { get; }
+    public double Start { get; set; }
+    public double End { get; set; }
+    protected double time;
+
+    public double Time {
+      get => time;
+      set => setTime(value);
+    }
+
+    protected virtual void setTime(double newTime)
+    {
+      foreach (var m in Metaballs)
+      {
+        var translation = m.TranslationFunction(newTime);
+        m.ToParentTranslation = translation;
+        m.FromParentTranslation = -translation;
+      }
+    }
 
     public MetaballsContainer (double threshold)
     {
       Threshold = threshold;
     }
 
-    public void AddMetaball (Metaball metaball, Vector3d translation)
+    public void AddMetaball (Metaball metaball, Vector3d translation, System.Func<double, Vector3d> translationFunction)
     {
       metaball.ToParentTranslation = translation;
       metaball.FromParentTranslation = -translation;
+      metaball.TranslationFunction = translationFunction;
       Metaballs.Add(metaball);
     }
 
@@ -226,6 +245,23 @@ namespace JiriMuller
       inter.TextureCoord.X = inter.CoordLocal.X;
       inter.TextureCoord.Y = inter.CoordLocal.Z;
     }
+
+    public object Clone ()
+    {
+      var tmp = new MetaballsContainer(Threshold);
+      ShareCloneAttributes(tmp);
+      tmp.Start = Start;
+      tmp.End = End;
+      tmp.Time = time;
+      tmp.InchStep = InchStep;
+      tmp.PrecisionInchStep = PrecisionInchStep;
+      foreach (var m in Metaballs)
+      {
+        tmp.Metaballs.Add((Metaball)m.Clone());
+      }
+
+      return tmp;
+    }
   }
 
 
@@ -235,7 +271,7 @@ namespace JiriMuller
     public Metaball Metaball;
   }
 
-  public class Metaball
+  public class Metaball : System.ICloneable
   {
     public BlobFunction MetaballFunction { get; }
     public GradientFunction GradientFunction { get; }
@@ -259,12 +295,10 @@ namespace JiriMuller
       BoundingSphere.FromParent = BoundingSphere.ToParent.Inverted();
     }
 
-    //public Matrix4d FromParent { get; set; }
-
-    //public Matrix4d ToParent { get; set; }
 
     public Vector3d ToParentTranslation { get; set; }
     public Vector3d FromParentTranslation { get; set; }
+    public System.Func<double, Vector3d> TranslationFunction { get; set; }
 
     public LinkedList<Intersection> IntersectBoundingSphere (Vector3d p0, Vector3d p1)
     {
@@ -280,6 +314,15 @@ namespace JiriMuller
     public Vector3d GetGradientAtPosition (Vector3d position)
     {
       return GradientFunction(position);
+    }
+
+    public object Clone ()
+    {
+      var tmp = new Metaball(MetaballFunction, GradientFunction, MaxRadius);
+      tmp.ToParentTranslation = ToParentTranslation;
+      tmp.FromParentTranslation = FromParentTranslation;
+      tmp.TranslationFunction = TranslationFunction;
+      return tmp;
     }
   }
 
